@@ -37,6 +37,11 @@ const Auth = {
     requests.put('/user', { user })
 };
 
+const Webauthn = {
+    beginRegister: (username) =>
+        requests.post('/webauthn/begin_register', { username }),
+}
+
 const Tags = {
   getAll: () => requests.get('/tags')
 };
@@ -87,10 +92,11 @@ const Profile = {
 };
 
 export default {
-  Articles,
-  Auth,
-  Comments,
-  Profile,
-  Tags,
-  setToken: _token => { token = _token; }
+    Articles,
+    Auth,
+    Comments,
+    Profile,
+    Tags,
+    Webauthn,
+    setToken: _token => { token = _token; }
 };

@@ -3,9 +3,11 @@ import React from 'react';
 import agent from '../agent';
 import { connect } from 'react-redux';
 import {
-  SETTINGS_SAVED,
-  SETTINGS_PAGE_UNLOADED,
-  LOGOUT
+    SETTINGS_SAVED,
+    SETTINGS_PAGE_UNLOADED,
+    WEBAUTHN_BEGIN_REGISTER,
+    WEBAUTHN_SAVED,
+    LOGOUT
 } from '../constants/actionTypes';
 
 class SettingsForm extends React.Component {
@@ -124,16 +126,75 @@ class SettingsForm extends React.Component {
   }
 }
 
+class SettingsWebauthn extends React.Component {
+    constructor() {
+        super();
+        this.state = {};
+
+        this.submitForm = ev => {
+            ev.preventDefault();
+            this.props.onWebauthnSubmitForm();
+
+            alert("TODO: I should enable webauthn!");
+        }
+    }
+
+    componentWillMount() {
+        if (this.props.currentUser) {
+            // Preload the registration details if webauthn is not yet enabled
+            if (!this.props.currentUser.webauthn_enabled) {
+                // ADDED: Also added WEBAUTHN_BEGIN_REGISTER dispatch calls
+                // this.props.onWebauthnRegisterPreload(
+                //     agent.Webauthn.beginRegister(this.props.currentUser.username));
+                let webauthn_options = agent.Webauthn.beginRegister(this.props.currentUser.username);
+                alert("PIKACHU!");
+                console.log(webauthn_options);
+
+                // agent.Webauthn.beginRegister(this.props.currentUser.username);
+            }
+        }
+    }
+
+    render() {
+        let button_text;
+        let button_type;
+        if (!this.props.currentUser.webauthn_enabled) {
+            button_text = "Enable Webauthn";
+            button_type = "btn-primary";
+        } else {
+            button_text = "Disable Webauthn";
+            button_type = "btn-danger";
+        }
+
+        return (
+          <form onSubmit={this.submitForm}>
+            <fieldset>
+
+              <button
+                className={"btn btn-lg " + button_type + " pull-xs-right"}
+                type="submit"
+                disabled={this.state.inProgress}>
+                {button_text}
+              </button>
+    
+            </fieldset>
+          </form>            
+        )
+    }
+}
+
 const mapStateToProps = state => ({
-  ...state.settings,
-  currentUser: state.common.currentUser
+    ...state.settings,
+    currentUser: state.common.currentUser
 });
 
 const mapDispatchToProps = dispatch => ({
-  onClickLogout: () => dispatch({ type: LOGOUT }),
-  onSubmitForm: user =>
-    dispatch({ type: SETTINGS_SAVED, payload: agent.Auth.save(user) }),
-  onUnload: () => dispatch({ type: SETTINGS_PAGE_UNLOADED })
+    onClickLogout: () => dispatch({ type: LOGOUT }),
+    onSubmitForm: user =>
+        dispatch({ type: SETTINGS_SAVED, payload: agent.Auth.save(user) }),
+    onWebauthnRegisterPreload: (payload) => dispatch({ type: WEBAUTHN_BEGIN_REGISTER, payload }),
+    onWebauthnSubmitForm: () => dispatch({ type: WEBAUTHN_SAVED }),
+    onUnload: () => dispatch({ type: SETTINGS_PAGE_UNLOADED })
 });
 
 class Settings extends React.Component {
@@ -152,6 +213,13 @@ class Settings extends React.Component {
                 currentUser={this.props.currentUser}
                 onSubmitForm={this.props.onSubmitForm} />
 
+              <hr />
+
+              <SettingsWebauthn
+                currentUser={this.props.currentUser}
+                onWebauthnRegisterPreload={this.props.onWebauthnRegisterPreload}
+                onWebauthnSubmitForm={this.props.onWebauthnSubmitForm} />
+            
               <hr />
 
               <button
