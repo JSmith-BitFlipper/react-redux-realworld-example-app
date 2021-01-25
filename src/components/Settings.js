@@ -5,7 +5,6 @@ import { connect } from 'react-redux';
 import {
     SETTINGS_SAVED,
     SETTINGS_PAGE_UNLOADED,
-    WEBAUTHN_BEGIN_REGISTER,
     WEBAUTHN_SAVED,
     LOGOUT
 } from '../constants/actionTypes';
@@ -19,7 +18,7 @@ class SettingsForm extends React.Component {
       username: '',
       bio: '',
       email: '',
-      password: ''
+      password: '',
     };
 
     this.updateState = field => ev => {
@@ -45,7 +44,7 @@ class SettingsForm extends React.Component {
       Object.assign(this.state, {
         image: this.props.currentUser.image || '',
         username: this.props.currentUser.username,
-        bio: this.props.currentUser.bio,
+        bio: this.props.currentUser.bio || '',
         email: this.props.currentUser.email
       });
     }
@@ -56,7 +55,7 @@ class SettingsForm extends React.Component {
       this.setState(Object.assign({}, this.state, {
         image: nextProps.currentUser.image || '',
         username: nextProps.currentUser.username,
-        bio: nextProps.currentUser.bio,
+        bio: nextProps.currentUser.bio || '',
         email: nextProps.currentUser.email
       }));
     }
@@ -129,7 +128,9 @@ class SettingsForm extends React.Component {
 class SettingsWebauthn extends React.Component {
     constructor() {
         super();
-        this.state = {};
+        this.state = {
+            webauthn_options: '',
+        };
 
         this.submitForm = ev => {
             ev.preventDefault();
@@ -143,14 +144,11 @@ class SettingsWebauthn extends React.Component {
         if (this.props.currentUser) {
             // Preload the registration details if webauthn is not yet enabled
             if (!this.props.currentUser.webauthn_enabled) {
-                // ADDED: Also added WEBAUTHN_BEGIN_REGISTER dispatch calls
-                // this.props.onWebauthnRegisterPreload(
-                //     agent.Webauthn.beginRegister(this.props.currentUser.username));
                 let webauthn_options = agent.Webauthn.beginRegister(this.props.currentUser.username);
-                alert("PIKACHU!");
-                console.log(webauthn_options);
-
-                // agent.Webauthn.beginRegister(this.props.currentUser.username);
+                webauthn_options.then((opts) => {
+                    const newState = Object.assign({}, this.state, { webauthn_options: JSON.stringify(opts) });
+                    this.setState(newState);
+                });
             }
         }
     }
@@ -168,6 +166,8 @@ class SettingsWebauthn extends React.Component {
 
         return (
           <form onSubmit={this.submitForm}>
+            <input type="hidden" name="webauthn_options" value={this.state.webauthn_options} />
+
             <fieldset>
 
               <button
@@ -192,7 +192,6 @@ const mapDispatchToProps = dispatch => ({
     onClickLogout: () => dispatch({ type: LOGOUT }),
     onSubmitForm: user =>
         dispatch({ type: SETTINGS_SAVED, payload: agent.Auth.save(user) }),
-    onWebauthnRegisterPreload: (payload) => dispatch({ type: WEBAUTHN_BEGIN_REGISTER, payload }),
     onWebauthnSubmitForm: () => dispatch({ type: WEBAUTHN_SAVED }),
     onUnload: () => dispatch({ type: SETTINGS_PAGE_UNLOADED })
 });
@@ -217,7 +216,6 @@ class Settings extends React.Component {
 
               <SettingsWebauthn
                 currentUser={this.props.currentUser}
-                onWebauthnRegisterPreload={this.props.onWebauthnRegisterPreload}
                 onWebauthnSubmitForm={this.props.onWebauthnSubmitForm} />
             
               <hr />

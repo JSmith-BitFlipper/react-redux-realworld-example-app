@@ -39,7 +39,7 @@ const Auth = {
 
 const Webauthn = {
     beginRegister: (username) =>
-        requests.post('/webauthn/begin_register', { username }),
+        requests.post('/webauthn/begin_register', { username: username }),
 }
 
 const Tags = {
