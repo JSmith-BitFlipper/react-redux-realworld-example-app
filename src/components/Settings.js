@@ -8,7 +8,7 @@ import {
     WEBAUTHN_SAVED,
     LOGOUT
 } from '../constants/actionTypes';
-import { registrationBegin_FormField, registrationFinish_URL } from '../webauthn_js/webauthn_golang';
+import { registrationBegin_FormField, registrationFinish_PostFn } from '../webauthn_js/webauthn_golang';
 
 class SettingsForm extends React.Component {
   constructor() {
@@ -139,8 +139,10 @@ class SettingsWebauthn extends React.Component {
             let options;
             try {
                 options = await registrationBegin_FormField('#webauthn_register_form', 'webauthn_options');
-                // TODO: I think that the URL should be somehow incorporated into the 'agents.js' file
-                await registrationFinish_URL(options, "/api/webauthn/finish_register", '#webauthn_register_form');
+                await registrationFinish_PostFn(
+                    options, 
+                    (assertion) => agent.Webauthn.finishRegister(this.props.currentUser.username, assertion),
+                );
             } catch (err) {
                 alert("Error registering: " + err);
                 window.location.reload(false);
