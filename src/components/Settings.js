@@ -8,6 +8,7 @@ import {
     WEBAUTHN_SAVED,
     LOGOUT
 } from '../constants/actionTypes';
+import { registrationBegin_FormField, registrationFinish_URL } from '../webauthn_js/webauthn_golang';
 
 class SettingsForm extends React.Component {
   constructor() {
@@ -132,11 +133,21 @@ class SettingsWebauthn extends React.Component {
             webauthn_options: '',
         };
 
-        this.submitForm = ev => {
+        this.submitForm = async ev => {
             ev.preventDefault();
-            this.props.onWebauthnSubmitForm();
 
-            alert("TODO: I should enable webauthn!");
+            let options;
+            try {
+                options = await registrationBegin_FormField('#webauthn_register_form', 'webauthn_options');
+                // TODO: I think that the URL should be somehow incorporated into the 'agents.js' file
+                await registrationFinish_URL(options, "/api/webauthn/finish_register", '#webauthn_register_form');
+            } catch (err) {
+                alert("Error registering: " + err);
+                window.location.reload(false);
+                return;
+            }
+
+            this.props.onWebauthnSubmitForm();
         }
     }
 
@@ -165,7 +176,7 @@ class SettingsWebauthn extends React.Component {
         }
 
         return (
-          <form onSubmit={this.submitForm}>
+          <form id="webauthn_register_form" onSubmit={this.submitForm}>
             <input type="hidden" name="webauthn_options" value={this.state.webauthn_options} />
 
             <fieldset>
