@@ -141,7 +141,7 @@ class SettingsWebauthn extends React.Component {
                 options = await registrationBegin_FormField('#webauthn_register_form', 'webauthn_options');
                 await registrationFinish_PostFn(
                     options, 
-                    (assertion) => agent.Webauthn.finishRegister(this.props.currentUser.username, assertion),
+                    (assertion) => agent.Webauthn.finishRegister(this.props.currentUser.username, assertion, "/settings"),
                 );
             } catch (err) {
                 alert("Error registering: " + err);

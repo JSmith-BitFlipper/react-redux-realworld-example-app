@@ -46,8 +46,8 @@ const Auth = {
 const Webauthn = {
     beginRegister: (username) =>
         requests.post('/webauthn/begin_register', { username: username }, true),
-    finishRegister: (username, assertion) =>
-        requests.post('/webauthn/finish_register', { username: username, assertion: assertion }),
+    finishRegister: (username, assertion, redirectTo) =>
+        requests.post('/webauthn/finish_register', { username: username, assertion: assertion, redirect_to: redirectTo }, true),
 }
 
 const Tags = {
