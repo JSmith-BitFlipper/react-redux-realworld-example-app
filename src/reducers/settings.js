@@ -1,5 +1,6 @@
 import {
     SETTINGS_SAVED,
+    SETTINGS_PAGE_LOADED,
     SETTINGS_PAGE_UNLOADED,
     WEBAUTHN_SAVED,
     ASYNC_START
@@ -12,6 +13,11 @@ export default (state = {}, action) => {
             ...state,
             inProgress: false,
             errors: action.error ? action.payload.errors : null
+        };
+    case SETTINGS_PAGE_LOADED:
+        return {
+            ...state,
+            currentUserHasWebauthn: action.payload ? action.payload.webauthn_is_enabled : null,
         };
     case SETTINGS_PAGE_UNLOADED:
         return {};

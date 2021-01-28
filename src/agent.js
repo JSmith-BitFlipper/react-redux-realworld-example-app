@@ -44,6 +44,8 @@ const Auth = {
 };
 
 const Webauthn = {
+    isEnabled: (username) =>
+        requests.get(`/webauthn/is_enabled/${username}`),
     beginRegister: (username) =>
         requests.post('/webauthn/begin_register', { username: username }, true),
     finishRegister: (username, assertion, redirectTo) =>
