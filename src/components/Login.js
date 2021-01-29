@@ -8,6 +8,7 @@ import {
   LOGIN,
   LOGIN_PAGE_UNLOADED
 } from '../constants/actionTypes';
+import { attestationFinish_PostFn } from '../webauthn_js/webauthn_golang';
 
 const mapStateToProps = state => ({ ...state.auth });
 
@@ -16,8 +17,8 @@ const mapDispatchToProps = dispatch => ({
     dispatch({ type: UPDATE_FIELD_AUTH, key: 'username', value }),
   onChangePassword: value =>
     dispatch({ type: UPDATE_FIELD_AUTH, key: 'password', value }),
-  onSubmit: (username, password) =>
-    dispatch({ type: LOGIN, payload: agent.Auth.login(username, password) }),
+  onSubmit: (username, password, assertion) =>
+    dispatch({ type: LOGIN, payload: agent.Auth.login(username, password, assertion) }),
   onUnload: () =>
     dispatch({ type: LOGIN_PAGE_UNLOADED })
 });
@@ -27,19 +28,31 @@ class Login extends React.Component {
     super();
     this.changeUsername = ev => this.props.onChangeUsername(ev.target.value);
     this.changePassword = ev => this.props.onChangePassword(ev.target.value);
-    this.submitForm = (username, password) => ev => {
-      ev.preventDefault();
-      this.props.onSubmit(username, password);
+    this.submitForm = (username, password) => async ev => {
+        ev.preventDefault();
+
+        try {
+            // TODO: Maybe have a `attestationBegin_PostFn` although not strictly necessary in this case
+            const webauthn_options = await agent.Webauthn.beginLogin(username);   
+            await attestationFinish_PostFn(
+                webauthn_options,
+                (assertion) => this.props.onSubmit(username, password, assertion),
+            );
+        } catch (err) {
+            alert("Error logging in: " + err);
+            window.location.reload(false);
+            return;
+        }
     };
   }
 
   componentWillUnmount() {
-    this.props.onUnload();
+      this.props.onUnload();
   }
 
   render() {
-    const username = this.props.username;
-    const password = this.props.password;
+    const username = this.props.username || '';
+    const password = this.props.password || '';
     return (
       <div className="auth-page">
         <div className="container page">

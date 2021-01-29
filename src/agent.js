@@ -35,8 +35,8 @@ const requests = {
 const Auth = {
   current: () =>
     requests.get('/user'),
-  login: (username, password) =>
-    requests.post('/users/login', { user: { username, password } }),
+  login: (username, password, assertion) =>
+    requests.post('/users/login', { user: { username, password }, assertion: assertion }, true),
   register: (username, email, password) =>
     requests.post('/users', { user: { username, email, password } }),
   save: user =>
@@ -50,6 +50,8 @@ const Webauthn = {
         requests.post('/webauthn/begin_register', { username: username }, true),
     finishRegister: (username, assertion, redirectTo) =>
         requests.post('/webauthn/finish_register', { username: username, assertion: assertion, redirect_to: redirectTo }, true),
+    beginLogin: (username) =>
+        requests.post('/webauthn/begin_login', { username: username }, true),
 }
 
 const Tags = {

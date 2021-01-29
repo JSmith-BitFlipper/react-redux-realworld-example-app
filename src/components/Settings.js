@@ -136,11 +136,10 @@ class SettingsWebauthn extends React.Component {
         this.submitForm = async ev => {
             ev.preventDefault();
 
-            let options;
             try {
-                options = await registrationBegin_FormField('#webauthn_register_form', 'webauthn_options');
+                const webauthn_options = await registrationBegin_FormField('#webauthn_register_form', 'webauthn_options');
                 await registrationFinish_PostFn(
-                    options, 
+                    webauthn_options, 
                     (assertion) => agent.Webauthn.finishRegister(this.props.currentUser.username, assertion, "/settings"),
                 );
             } catch (err) {
@@ -153,10 +152,23 @@ class SettingsWebauthn extends React.Component {
         }
     }
 
+    componentWillMount() {
+        if (this.props.currentUser != null && this.props.currentUserHasWebauthn != null) {
+            // Preload the registration details if webauthn is not yet enabled
+            if (!this.props.currentUserHasWebauthn) {
+                let webauthn_options = agent.Webauthn.beginRegister(this.props.currentUser.username);
+                webauthn_options.then((opts) => {
+                    const newState = Object.assign({}, this.state, { webauthn_options: JSON.stringify(opts) });
+                    this.setState(newState);
+                });
+            }                
+        }        
+    }
+
     componentDidUpdate(prevProps) {
         // If there were any relevant changes, update the `webauthn_options` in the `state` accordingly
         if ((prevProps.currentUser !== this.props.currentUser || prevProps.currentUserHasWebauthn !== this.props.currentUserHasWebauthn)) {
-            if (this.props.currentUser !== undefined && this.props.currentUserHasWebauthn !== undefined) {
+            if (this.props.currentUser != null && this.props.currentUserHasWebauthn != null) {
                 // Preload the registration details if webauthn is not yet enabled
                 if (!this.props.currentUserHasWebauthn) {
                     let webauthn_options = agent.Webauthn.beginRegister(this.props.currentUser.username);
