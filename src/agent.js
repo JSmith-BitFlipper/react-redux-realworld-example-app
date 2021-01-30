@@ -48,10 +48,12 @@ const Webauthn = {
         requests.get(`/webauthn/is_enabled/${username}`),
     beginRegister: (username) =>
         requests.post('/webauthn/begin_register', { username: username }, true),
-    finishRegister: (username, assertion, redirectTo) =>
-        requests.post('/webauthn/finish_register', { username: username, assertion: assertion, redirect_to: redirectTo }, true),
+    finishRegister: (username, assertion) =>
+        requests.post('/webauthn/finish_register', { username: username, assertion: assertion }, true),
     beginLogin: (username) =>
         requests.post('/webauthn/begin_login', { username: username }, true),
+    beginAttestation: (username, auth_text) =>
+        requests.post('/webauthn/begin_attestation', { username: username, auth_text: auth_text }, true),
 }
 
 const Tags = {

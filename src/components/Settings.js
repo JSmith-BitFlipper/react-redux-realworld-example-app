@@ -4,8 +4,9 @@ import agent from '../agent';
 import { connect } from 'react-redux';
 import {
     SETTINGS_SAVED,
-    SETTINGS_PAGE_LOADED,
-    WEBAUTHN_SAVED,
+    SETTINGS_PAGE_REFRESH,
+    SETTINGS_PAGE_UNLOADED,
+    WEBAUTHN_REGISTER,
     LOGOUT
 } from '../constants/actionTypes';
 import { registrationBegin_FormField, registrationFinish_PostFn } from '../webauthn_js/webauthn_golang';
@@ -126,6 +127,7 @@ class SettingsForm extends React.Component {
   }
 }
 
+// TODO: Move this into own file
 class SettingsWebauthn extends React.Component {
     constructor() {
         super();
@@ -136,19 +138,19 @@ class SettingsWebauthn extends React.Component {
         this.submitForm = async ev => {
             ev.preventDefault();
 
+            const username = this.props.currentUser.username;
             try {
                 const webauthn_options = await registrationBegin_FormField('#webauthn_register_form', 'webauthn_options');
                 await registrationFinish_PostFn(
                     webauthn_options, 
-                    (assertion) => agent.Webauthn.finishRegister(this.props.currentUser.username, assertion, "/settings"),
+                    (assertion) => this.props.onWebauthnRegister(username, assertion),
                 );
             } catch (err) {
                 alert("Error registering: " + err);
                 window.location.reload(false);
                 return;
             }
-
-            this.props.onWebauthnSubmitForm();
+            // TODO: Need to cause page to refresh. Should use onRefresh prop somehow
         }
     }
 
@@ -169,14 +171,24 @@ class SettingsWebauthn extends React.Component {
         // If there were any relevant changes, update the `webauthn_options` in the `state` accordingly
         if ((prevProps.currentUser !== this.props.currentUser || prevProps.currentUserHasWebauthn !== this.props.currentUserHasWebauthn)) {
             if (this.props.currentUser != null && this.props.currentUserHasWebauthn != null) {
+                const username = this.props.currentUser.username;
+
                 // Preload the registration details if webauthn is not yet enabled
                 if (!this.props.currentUserHasWebauthn) {
-                    let webauthn_options = agent.Webauthn.beginRegister(this.props.currentUser.username);
+                    let webauthn_options = agent.Webauthn.beginRegister(username);
                     webauthn_options.then((opts) => {
                         const newState = Object.assign({}, this.state, { webauthn_options: JSON.stringify(opts) });
                         this.setState(newState);
                     });
-                }                
+                } else {
+                    // Preload the attestation details to disable webauthn
+                    let webauthn_options = agent.Webauthn.beginAttestation(
+                        username, "Confirm disable webauthn for {0}".format(username));
+                    webauthn_options.then((opts) => {
+                        const newState = Object.assign({}, this.state, { webauthn_options: JSON.stringify(opts) });
+                        this.setState(newState);
+                    });
+                } 
             }
         }
     }
@@ -222,19 +234,25 @@ const mapStateToProps = state => ({
 });
 
 const mapDispatchToProps = dispatch => ({
-    onLoad: (username) => 
-        dispatch({ type: SETTINGS_PAGE_LOADED, payload: agent.Webauthn.isEnabled(username) }),
+    onRefresh: (username) => 
+        dispatch({ type: SETTINGS_PAGE_REFRESH, payload: agent.Webauthn.isEnabled(username) }),
     onClickLogout: () => dispatch({ type: LOGOUT }),
     onSubmitForm: user =>
         dispatch({ type: SETTINGS_SAVED, payload: agent.Auth.save(user) }),
-    onWebauthnSubmitForm: () => dispatch({ type: WEBAUTHN_SAVED }),
+    onWebauthnRegister: (username, assertion) =>
+        dispatch({ type: WEBAUTHN_REGISTER, payload: agent.Webauthn.finishRegister(username, assertion) }),
+    onUnload: () => dispatch({ type: SETTINGS_PAGE_UNLOADED }),
 });
 
 class Settings extends React.Component {
   componentWillMount() {
       if (this.props.currentUser) {
-          this.props.onLoad(this.props.currentUser.username);
+          this.props.onRefresh(this.props.currentUser.username);
       }
+  }
+
+  componentWillUnmount() {
+    this.props.onUnload();
   }
 
   render() {
@@ -257,7 +275,8 @@ class Settings extends React.Component {
               <SettingsWebauthn
                 currentUser={this.props.currentUser}
                 currentUserHasWebauthn={this.props.currentUserHasWebauthn}
-                onWebauthnSubmitForm={this.props.onWebauthnSubmitForm} />
+                onWebauthnRegister={this.props.onWebauthnRegister} 
+                onRefresh={this.props.onRefresh} />
             
               <hr />
 
