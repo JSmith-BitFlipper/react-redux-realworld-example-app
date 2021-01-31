@@ -3,12 +3,15 @@ import {
     SETTINGS_PAGE_REFRESH,
     SETTINGS_PAGE_UNLOADED,
     WEBAUTHN_REGISTER,
+    WEBAUTHN_ATTESTATION,
     ASYNC_START
 } from '../constants/actionTypes';
 
 export default (state = {}, action) => {
     switch (action.type) {
     case SETTINGS_SAVED:
+    case WEBAUTHN_REGISTER:
+    case WEBAUTHN_ATTESTATION:
         return {
             ...state,
             inProgress: false,
@@ -21,11 +24,6 @@ export default (state = {}, action) => {
         };
     case SETTINGS_PAGE_UNLOADED:
         return {};
-    case WEBAUTHN_REGISTER:
-        return {
-            ...state,
-            inProgress: false,
-        };
     case ASYNC_START:
         return {
             ...state,

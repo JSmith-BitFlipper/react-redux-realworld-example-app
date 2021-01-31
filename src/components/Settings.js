@@ -7,9 +7,10 @@ import {
     SETTINGS_PAGE_REFRESH,
     SETTINGS_PAGE_UNLOADED,
     WEBAUTHN_REGISTER,
+    WEBAUTHN_ATTESTATION,
     LOGOUT
 } from '../constants/actionTypes';
-import { registrationBegin_FormField, registrationFinish_PostFn } from '../webauthn_js/webauthn_golang';
+import { retrieveWebauthnOptions_FormField, registrationFinish_PostFn, attestationFinish_PostFn } from '../webauthn_js/webauthn_golang';
 
 class SettingsForm extends React.Component {
   constructor() {
@@ -140,13 +141,23 @@ class SettingsWebauthn extends React.Component {
 
             const username = this.props.currentUser.username;
             try {
-                const webauthn_options = await registrationBegin_FormField('#webauthn_register_form', 'webauthn_options');
-                await registrationFinish_PostFn(
-                    webauthn_options, 
-                    (assertion) => this.props.onWebauthnRegister(username, assertion),
-                );
+                const webauthn_options = await retrieveWebauthnOptions_FormField('#webauthn_form', 'webauthn_options');
+
+                // Perform a registration event
+                if (!this.props.currentUserHasWebauthn) {
+                    await registrationFinish_PostFn(
+                        webauthn_options, 
+                        (assertion) => this.props.onWebauthnRegister(username, assertion),
+                    );
+                } else {
+                    // Perform an attestation event
+                    await attestationFinish_PostFn(
+                        webauthn_options, 
+                        (assertion) => this.props.onWebauthnDisable(username, assertion),
+                    );                    
+                }
             } catch (err) {
-                alert("Error registering: " + err);
+                alert("Webauthn error: " + err);
                 window.location.reload(false);
                 return;
             }
@@ -210,7 +221,7 @@ class SettingsWebauthn extends React.Component {
         }
 
         return (
-          <form id="webauthn_register_form" onSubmit={this.submitForm}>
+          <form id="webauthn_form" onSubmit={this.submitForm}>
             <input type="hidden" name="webauthn_options" value={this.state.webauthn_options} />
 
             <fieldset>
@@ -241,6 +252,8 @@ const mapDispatchToProps = dispatch => ({
         dispatch({ type: SETTINGS_SAVED, payload: agent.Auth.save(user) }),
     onWebauthnRegister: (username, assertion) =>
         dispatch({ type: WEBAUTHN_REGISTER, payload: agent.Webauthn.finishRegister(username, assertion) }),
+    onWebauthnDisable: (username, assertion) =>
+        dispatch({ type: WEBAUTHN_ATTESTATION, payload: agent.Webauthn.disableWebauthn(username, assertion) }),
     onUnload: () => dispatch({ type: SETTINGS_PAGE_UNLOADED }),
 });
 
@@ -275,7 +288,8 @@ class Settings extends React.Component {
               <SettingsWebauthn
                 currentUser={this.props.currentUser}
                 currentUserHasWebauthn={this.props.currentUserHasWebauthn}
-                onWebauthnRegister={this.props.onWebauthnRegister} 
+                onWebauthnRegister={this.props.onWebauthnRegister}
+                onWebauthnDisable={this.props.onWebauthnDisable}
                 onRefresh={this.props.onRefresh} />
             
               <hr />

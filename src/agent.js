@@ -54,6 +54,8 @@ const Webauthn = {
         requests.post('/webauthn/begin_login', { username: username }, true),
     beginAttestation: (username, auth_text) =>
         requests.post('/webauthn/begin_attestation', { username: username, auth_text: auth_text }, true),
+    disableWebauthn: (username, assertion) =>
+        requests.post('/webauthn/disable', { username: username, assertion: assertion }, true),
 }
 
 const Tags = {
