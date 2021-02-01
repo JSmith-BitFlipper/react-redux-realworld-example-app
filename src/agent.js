@@ -16,8 +16,14 @@ const tokenPlugin = req => {
 }
 
 const requests = {
-  del: (url, body) =>
-    superagent.del(`${API_ROOT}${url}`, { haha: "haha" } ).use(tokenPlugin).then(responseBody),
+  del: (url, body, withCookies=false) => {
+    let req = superagent.del(`${API_ROOT}${url}`, body).use(tokenPlugin);
+    // Pass over the cookies if requested
+    if (withCookies === true) {
+        req = req.withCredentials();
+    }
+    return req.then(responseBody);
+  },
   get: url =>
     superagent.get(`${API_ROOT}${url}`).use(tokenPlugin).then(responseBody),
   put: (url, body) =>
@@ -93,7 +99,7 @@ const Comments = {
   create: (slug, comment) =>
     requests.post(`/articles/${slug}/comments`, { comment }),
   delete: (slug, commentId, username, assertion) =>
-    requests.del(`/articles/${slug}/comments/${commentId}`, { username: username, assertion: assertion }),
+    requests.del(`/articles/${slug}/comments/${commentId}`, { username: username, assertion: assertion }, true),
   forArticle: slug =>
     requests.get(`/articles/${slug}/comments`)
 };
