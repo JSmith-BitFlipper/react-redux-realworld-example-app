@@ -136,6 +136,27 @@ class SettingsWebauthn extends React.Component {
             webauthn_options: '',
         };
 
+        this.fillWebauthnOptions = () => {
+            const username = this.props.currentUser.username;
+
+            // Preload the registration details if webauthn is not yet enabled
+            if (!this.props.currentUserHasWebauthn) {
+                let webauthn_options = agent.Webauthn.beginRegister(username);
+                webauthn_options.then((opts) => {
+                    const newState = Object.assign({}, this.state, { webauthn_options: JSON.stringify(opts) });
+                    this.setState(newState);
+                });
+            } else {
+                // Preload the attestation details to disable webauthn
+                let webauthn_options = agent.Webauthn.beginAttestation(
+                    username, "Confirm disable webauthn for {0}".format(username));
+                webauthn_options.then((opts) => {
+                    const newState = Object.assign({}, this.state, { webauthn_options: JSON.stringify(opts) });
+                    this.setState(newState);
+                });
+            }
+        };
+
         this.submitForm = async ev => {
             ev.preventDefault();
 
@@ -167,39 +188,15 @@ class SettingsWebauthn extends React.Component {
 
     componentWillMount() {
         if (this.props.currentUser != null && this.props.currentUserHasWebauthn != null) {
-            // Preload the registration details if webauthn is not yet enabled
-            if (!this.props.currentUserHasWebauthn) {
-                let webauthn_options = agent.Webauthn.beginRegister(this.props.currentUser.username);
-                webauthn_options.then((opts) => {
-                    const newState = Object.assign({}, this.state, { webauthn_options: JSON.stringify(opts) });
-                    this.setState(newState);
-                });
-            }                
+            this.fillWebauthnOptions();
         }        
     }
 
     componentDidUpdate(prevProps) {
         // If there were any relevant changes, update the `webauthn_options` in the `state` accordingly
-        if ((prevProps.currentUser !== this.props.currentUser || prevProps.currentUserHasWebauthn !== this.props.currentUserHasWebauthn)) {
+        if (prevProps.currentUser !== this.props.currentUser || prevProps.currentUserHasWebauthn !== this.props.currentUserHasWebauthn) {
             if (this.props.currentUser != null && this.props.currentUserHasWebauthn != null) {
-                const username = this.props.currentUser.username;
-
-                // Preload the registration details if webauthn is not yet enabled
-                if (!this.props.currentUserHasWebauthn) {
-                    let webauthn_options = agent.Webauthn.beginRegister(username);
-                    webauthn_options.then((opts) => {
-                        const newState = Object.assign({}, this.state, { webauthn_options: JSON.stringify(opts) });
-                        this.setState(newState);
-                    });
-                } else {
-                    // Preload the attestation details to disable webauthn
-                    let webauthn_options = agent.Webauthn.beginAttestation(
-                        username, "Confirm disable webauthn for {0}".format(username));
-                    webauthn_options.then((opts) => {
-                        const newState = Object.assign({}, this.state, { webauthn_options: JSON.stringify(opts) });
-                        this.setState(newState);
-                    });
-                } 
+                this.fillWebauthnOptions(); 
             }
         }
     }
@@ -234,7 +231,7 @@ class SettingsWebauthn extends React.Component {
               </button>
     
             </fieldset>
-          </form>            
+          </form>
         )
     }
 }
