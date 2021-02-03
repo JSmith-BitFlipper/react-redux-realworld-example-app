@@ -58,10 +58,10 @@ const Webauthn = {
         requests.post('/webauthn/finish_register', { username: username, assertion: assertion }, true),
     beginLogin: (username) =>
         requests.post('/webauthn/begin_login', { username: username }, true),
-    beginAttestation: (username, auth_text) =>
-        requests.post('/webauthn/begin_attestation', { username: username, auth_text: auth_text }, true),
-    disableWebauthn: (username, assertion) =>
-        requests.post('/webauthn/disable', { username: username, assertion: assertion }, true),
+    beginAttestation: (auth_text) =>
+        requests.post('/webauthn/begin_attestation', { auth_text: auth_text }, true),
+    disableWebauthn: (assertion) =>
+        requests.post('/webauthn/disable', { assertion: assertion }, true),
 }
 
 const Tags = {
@@ -98,8 +98,8 @@ const Articles = {
 const Comments = {
   create: (slug, comment) =>
     requests.post(`/articles/${slug}/comments`, { comment }),
-  delete: (slug, commentId, username, assertion) =>
-    requests.del(`/articles/${slug}/comments/${commentId}`, { username: username, assertion: assertion }, true),
+  delete: (slug, commentId, assertion) =>
+    requests.del(`/articles/${slug}/comments/${commentId}`, { assertion: assertion }, true),
   forArticle: slug =>
     requests.get(`/articles/${slug}/comments`)
 };

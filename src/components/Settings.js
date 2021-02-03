@@ -149,7 +149,7 @@ class SettingsWebauthn extends React.Component {
             } else {
                 // Preload the attestation details to disable webauthn
                 let webauthn_options = agent.Webauthn.beginAttestation(
-                    username, "Confirm disable webauthn for {0}".format(username));
+                    "Confirm disable webauthn for {0}".format(username));
                 webauthn_options.then((opts) => {
                     const newState = Object.assign({}, this.state, { webauthn_options: JSON.stringify(opts) });
                     this.setState(newState);
@@ -160,7 +160,6 @@ class SettingsWebauthn extends React.Component {
         this.submitForm = async ev => {
             ev.preventDefault();
 
-            const username = this.props.currentUser.username;
             try {
                 const webauthn_options = await retrieveWebauthnOptions_FormField('#webauthn_form', 'webauthn_options');
 
@@ -168,13 +167,13 @@ class SettingsWebauthn extends React.Component {
                 if (!this.props.currentUserHasWebauthn) {
                     await registrationFinish_PostFn(
                         webauthn_options, 
-                        (assertion) => this.props.onWebauthnRegister(username, assertion),
+                        (assertion) => this.props.onWebauthnRegister(this.props.currentUser.username, assertion),
                     );
                 } else {
                     // Perform an attestation event
                     await attestationFinish_PostFn(
                         webauthn_options, 
-                        (assertion) => this.props.onWebauthnDisable(username, assertion),
+                        (assertion) => this.props.onWebauthnDisable(assertion),
                     );                    
                 }
             } catch (err) {
@@ -249,8 +248,8 @@ const mapDispatchToProps = dispatch => ({
         dispatch({ type: SETTINGS_SAVED, payload: agent.Auth.save(user) }),
     onWebauthnRegister: (username, assertion) =>
         dispatch({ type: WEBAUTHN_REGISTER, payload: agent.Webauthn.finishRegister(username, assertion) }),
-    onWebauthnDisable: (username, assertion) =>
-        dispatch({ type: WEBAUTHN_ATTESTATION, payload: agent.Webauthn.disableWebauthn(username, assertion) }),
+    onWebauthnDisable: (assertion) =>
+        dispatch({ type: WEBAUTHN_ATTESTATION, payload: agent.Webauthn.disableWebauthn(assertion) }),
     onUnload: () => dispatch({ type: SETTINGS_PAGE_UNLOADED }),
 });
 
