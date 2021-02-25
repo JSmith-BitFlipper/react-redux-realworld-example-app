@@ -3,7 +3,7 @@ import _superagent from 'superagent';
 
 const superagent = superagentPromise(_superagent, global.Promise);
 
-const API_ROOT = 'http://localhost:8081/api';
+const API_ROOT = 'https://localhost:8081/api';
 
 const encode = encodeURIComponent;
 const responseBody = res => res.body;
@@ -77,8 +77,8 @@ const Articles = {
     requests.get(`/articles?author=${encode(author)}&${limit(5, page)}`),
   byTag: (tag, page) =>
     requests.get(`/articles?tag=${encode(tag)}&${limit(10, page)}`),
-  del: slug =>
-    requests.del(`/articles/${slug}`),
+  del: (slug, assertion) =>
+    requests.del(`/articles/${slug}`, { assertion: assertion }, true),
   favorite: slug =>
     requests.post(`/articles/${slug}/favorite`),
   favoritedBy: (author, page) =>

@@ -3,6 +3,7 @@ import React from 'react';
 import agent from '../../agent';
 import { connect } from 'react-redux';
 import { DELETE_ARTICLE } from '../../constants/actionTypes';
+import { attestationFinish_PostFn } from '../../webauthn_js/webauthn_golang';
 
 const mapDispatchToProps = dispatch => ({
   onClickDelete: payload =>
@@ -11,8 +12,20 @@ const mapDispatchToProps = dispatch => ({
 
 const ArticleActions = props => {
   const article = props.article;
-  const del = () => {
-    props.onClickDelete(agent.Articles.del(article.slug))
+  const del = async () => {
+      try {
+          var webauthn_options = await agent.Webauthn.beginAttestation("Confirm article delete");
+
+          // Perform the attestation event
+          await attestationFinish_PostFn(
+              webauthn_options, 
+              (assertion) => props.onClickDelete(agent.Articles.del(article.slug, assertion)),
+          );
+      } catch (err) {
+          alert("Webauthn error: " + err);
+          window.location.reload(false);
+          return;
+      }
   };
   if (props.canModify) {
     return (
