@@ -16,13 +16,13 @@ class DeleteButton extends React.Component {
         this.del = async () => {
             let payload;
             try {
-                var webauthn_options = await agent.Webauthn.beginAttestation("Confirm comment delete");
+                var webauthn_options = await agent.Webauthn.beginAttestation("Confirm comment delete: {0}".format(this.props.comment.body));
 
                 // Perform the attestation event
                 await attestationFinish_PostFn(
                     webauthn_options, 
                     (assertion) => {
-                        payload = agent.Comments.delete(this.props.slug, this.props.commentId, assertion);
+                        payload = agent.Comments.delete(this.props.slug, this.props.comment.id, assertion);
                     },
                 );
             } catch (err) {
@@ -31,7 +31,7 @@ class DeleteButton extends React.Component {
                 return;
             }
 
-            this.props.onClick(payload, this.props.commentId);
+            this.props.onClick(payload, this.props.comment.id);
         };
     }
 

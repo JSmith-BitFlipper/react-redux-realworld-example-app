@@ -26,7 +26,7 @@ const Comment = props => {
         <span className="date-posted">
           {new Date(comment.createdAt).toDateString()}
         </span>
-        <DeleteButton show={show_delete} slug={props.slug} commentId={comment.id} currentUser={props.currentUser} />
+        <DeleteButton show={show_delete} slug={props.slug} comment={comment} currentUser={props.currentUser} />
       </div>
     </div>
   );

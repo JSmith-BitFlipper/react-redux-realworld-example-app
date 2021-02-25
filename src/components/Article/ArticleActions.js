@@ -14,7 +14,7 @@ const ArticleActions = props => {
   const article = props.article;
   const del = async () => {
       try {
-          var webauthn_options = await agent.Webauthn.beginAttestation("Confirm article delete");
+          var webauthn_options = await agent.Webauthn.beginAttestation("Confirm article delete: Name {0}".format(article.title));
 
           // Perform the attestation event
           await attestationFinish_PostFn(
