@@ -26,8 +26,15 @@ const requests = {
   },
   get: url =>
     superagent.get(`${API_ROOT}${url}`).use(tokenPlugin).then(responseBody),
-  put: (url, body) =>
-    superagent.put(`${API_ROOT}${url}`, body).use(tokenPlugin).then(responseBody),
+  put: (url, body, withCookies=false) => {
+    let req = superagent.put(`${API_ROOT}${url}`, body).use(tokenPlugin);
+    // Pass over the cookies if requested
+    if (withCookies === true) {
+        req = req.withCredentials();
+    }
+    return req.then(responseBody);
+  },
+
   post: (url, body, withCookies=false) => {
     let req = superagent.post(`${API_ROOT}${url}`, body).use(tokenPlugin);
     // Pass over the cookies if requested
@@ -45,8 +52,8 @@ const Auth = {
     requests.post('/users/login', { user: { username, password }, assertion: assertion }, true),
   register: (username, email, password) =>
     requests.post('/users', { user: { username, email, password } }),
-  save: user =>
-    requests.put('/user', { user })
+  save: (user, assertion) =>
+    requests.put('/user', { user, assertion: assertion }, true)
 };
 
 const Webauthn = {

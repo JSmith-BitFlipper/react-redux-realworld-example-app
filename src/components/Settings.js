@@ -10,7 +10,7 @@ import {
     WEBAUTHN_ATTESTATION,
     LOGOUT
 } from '../constants/actionTypes';
-import { retrieveWebauthnOptions_FormField, registrationFinish_PostFn, attestationFinish_PostFn } from '../webauthn_js/webauthn_golang';
+import { registrationFinish_PostFn, attestationFinish_PostFn } from '../webauthn_js/webauthn_golang';
 
 class SettingsForm extends React.Component {
   constructor() {
@@ -30,16 +30,30 @@ class SettingsForm extends React.Component {
       this.setState(newState);
     };
 
-    this.submitForm = ev => {
-      ev.preventDefault();
+      this.submitForm = async ev => {
+          ev.preventDefault();
 
-      const user = Object.assign({}, this.state);
-      if (!user.password) {
-        delete user.password;
-      }
+          const user = Object.assign({}, this.state);
+          if (!user.password) {
+              delete user.password;
+          }
 
-      this.props.onSubmitForm(user);
-    };
+          var webauthn_options = null;
+
+          // A critical field was changed and needs authentication
+          if (user.username !== this.props.currentUser.username ||
+              user.email !== this.props.currentUser.email ||
+              user.password != null) {
+              webauthn_options = await agent.Webauthn.beginAttestation(
+                  "Confirm new user details:\n\tusername {0}\n\temail {1}".format(user.username, user.email));
+          }
+
+          // Perform the attestation event. If `webauthn_options === null`, then simply calls `onSubmitForm` directly
+          await attestationFinish_PostFn(
+              webauthn_options, 
+              (assertion) => this.props.onSubmitForm(agent.Auth.save(user, assertion)),
+          );
+      };
   }
 
   componentWillMount() {
@@ -132,44 +146,23 @@ class SettingsForm extends React.Component {
 class SettingsWebauthn extends React.Component {
     constructor() {
         super();
-        this.state = {
-            webauthn_options: '',
-        };
-
-        this.fillWebauthnOptions = () => {
-            const username = this.props.currentUser.username;
-
-            // Preload the registration details if webauthn is not yet enabled
-            if (!this.props.currentUserHasWebauthn) {
-                let webauthn_options = agent.Webauthn.beginRegister(username);
-                webauthn_options.then((opts) => {
-                    const newState = Object.assign({}, this.state, { webauthn_options: JSON.stringify(opts) });
-                    this.setState(newState);
-                });
-            } else {
-                // Preload the attestation details to disable webauthn
-                let webauthn_options = agent.Webauthn.beginAttestation(
-                    "Confirm disable webauthn for {0}".format(username));
-                webauthn_options.then((opts) => {
-                    const newState = Object.assign({}, this.state, { webauthn_options: JSON.stringify(opts) });
-                    this.setState(newState);
-                });
-            }
-        };
+        this.state = {};
 
         this.submitForm = async ev => {
             ev.preventDefault();
+            const username = this.props.currentUser.username;
 
             try {
-                const webauthn_options = await retrieveWebauthnOptions_FormField('#webauthn_form', 'webauthn_options');
-
                 // Perform a registration event
                 if (!this.props.currentUserHasWebauthn) {
+                    let webauthn_options = await agent.Webauthn.beginRegister(username);
                     await registrationFinish_PostFn(
                         webauthn_options, 
                         (assertion) => this.props.onWebauthnRegister(this.props.currentUser.username, assertion),
                     );
                 } else {
+                    let webauthn_options = await agent.Webauthn.beginAttestation("Confirm disable webauthn for {0}".format(username));
+
                     // Perform an attestation event
                     await attestationFinish_PostFn(
                         webauthn_options, 
@@ -182,21 +175,6 @@ class SettingsWebauthn extends React.Component {
                 return;
             }
             // TODO: Need to cause page to refresh. Should use onRefresh prop somehow
-        }
-    }
-
-    componentWillMount() {
-        if (this.props.currentUser != null && this.props.currentUserHasWebauthn != null) {
-            this.fillWebauthnOptions();
-        }        
-    }
-
-    componentDidUpdate(prevProps) {
-        // If there were any relevant changes, update the `webauthn_options` in the `state` accordingly
-        if (prevProps.currentUser !== this.props.currentUser || prevProps.currentUserHasWebauthn !== this.props.currentUserHasWebauthn) {
-            if (this.props.currentUser != null && this.props.currentUserHasWebauthn != null) {
-                this.fillWebauthnOptions(); 
-            }
         }
     }
 
@@ -218,8 +196,6 @@ class SettingsWebauthn extends React.Component {
 
         return (
           <form id="webauthn_form" onSubmit={this.submitForm}>
-            <input type="hidden" name="webauthn_options" value={this.state.webauthn_options} />
-
             <fieldset>
 
               <button
@@ -244,8 +220,8 @@ const mapDispatchToProps = dispatch => ({
     onRefresh: (username) => 
         dispatch({ type: SETTINGS_PAGE_REFRESH, payload: agent.Webauthn.isEnabled(username) }),
     onClickLogout: () => dispatch({ type: LOGOUT }),
-    onSubmitForm: user =>
-        dispatch({ type: SETTINGS_SAVED, payload: agent.Auth.save(user) }),
+    onSubmitForm: payload =>
+        dispatch({ type: SETTINGS_SAVED, payload: payload }),
     onWebauthnRegister: (username, assertion) =>
         dispatch({ type: WEBAUTHN_REGISTER, payload: agent.Webauthn.finishRegister(username, assertion) }),
     onWebauthnDisable: (assertion) =>
